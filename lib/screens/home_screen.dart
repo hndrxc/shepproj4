@@ -2,47 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/roam_api.dart';
-import '../services/supabase_roam_api.dart';
+import '../style_labels.dart';
 import '../theme.dart';
+import 'auth_screen.dart';
+import 'matches_screen.dart';
 
 /// Mobile home screen, adapted from web/home.html's marketing page into a
 /// scrollable native layout. Keeps the live Supabase-backed travel-styles
 /// fetch that main.dart previously rendered on its own.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.api});
+  const HomeScreen({super.key, required this.api});
 
-  final RoamApi? api;
+  final RoamApi api;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late final RoamApi _api;
   late Future<List<String>> _styles;
-
-  static const styleLabels = {
-    'solo': 'Solo & independent',
-    'chill': 'Beach & relaxation',
-    'adventure': 'Adventure & outdoors',
-    'luxury': 'Luxury travel',
-    'budget': 'Budget & backpacking',
-    'food': 'Food & culture',
-  };
 
   @override
   void initState() {
     super.initState();
-    _api =
-        widget.api ??
-        (const bool.fromEnvironment('USE_LOCAL_BACKEND')
-            ? RoamApi()
-            : SupabaseRoamApi());
     _styles = _loadStyles();
   }
 
   Future<List<String>> _loadStyles() async {
-    final result = await _api.styles();
+    final result = await widget.api.styles();
     final items = result['items'];
     if (items is! List || items.any((item) => item is! String)) {
       throw const RoamApiException(
@@ -52,29 +39,23 @@ class _HomeScreenState extends State<HomeScreen> {
     return items.cast<String>();
   }
 
-  @override
-  void dispose() {
-    if (widget.api == null) _api.close();
-    super.dispose();
-  }
-
-  void _comingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature is coming soon.')),
+  Future<void> _joinOrLogin() async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => AuthScreen(api: widget.api)),
     );
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: RoamColors.offwhite,
-    appBar: _RoamAppBar(onJoin: () => _comingSoon('Sign up')),
+    appBar: _RoamAppBar(onJoin: _joinOrLogin),
     // A plain Column (not a lazy ListView/CustomScrollView) so every section
     // is always built, not just whatever is within the current viewport.
     body: SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Hero(onFindTrips: () => _comingSoon('Trip search')),
+          _Hero(api: widget.api),
           const SizedBox(height: 56),
           const _FeatureGrid(),
           _TravelStylesSection(
@@ -86,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const _HowItWorks(),
           const _SafetySection(),
-          _MembershipCta(onJoin: () => _comingSoon('Roam+ membership')),
+          _MembershipCta(onJoin: _joinOrLogin),
           const _Footer(),
         ],
       ),
@@ -95,88 +76,100 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({required this.onFindTrips});
+  const _Hero({required this.api});
 
-  final VoidCallback onFindTrips;
+  final RoamApi api;
 
   static const _heroImage = AssetImage('assets/images/hero-nightlife.jpg');
 
+  // The search card overlaps the photo's bottom edge by this many pixels.
+  // It is reserved as real layout space below (not just painted overflow),
+  // so the card stays within the Stack's hit-testable bounds — a Stack
+  // sizes itself only from its non-positioned children, and Clip.none
+  // affects painting only, not hit-testing. A Positioned child painted
+  // outside that box via negative offsets silently never receives taps.
+  static const _cardOverlap = 70.0;
+
   @override
   Widget build(BuildContext context) => Stack(
-    clipBehavior: Clip.none,
     children: [
-      ClipRect(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Image(image: _heroImage, fit: BoxFit.cover),
-            ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0, 0.4, 1],
-                    colors: [
-                      RoamColors.navy.withValues(alpha: 0.45),
-                      RoamColors.navy.withValues(alpha: 0.2),
-                      RoamColors.navy.withValues(alpha: 0.72),
-                    ],
-                  ),
+      Column(
+        children: [
+          ClipRect(
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image(image: _heroImage, fit: BoxFit.cover),
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 84, 24, 230),
-              child: Column(
-                children: [
-                  Text(
-                    'Find Your Travel',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.breeSerif(
-                      color: Colors.white,
-                      fontSize: 34,
-                      height: 1.15,
-                      shadows: const [
-                        Shadow(color: Colors.black38, blurRadius: 24, offset: Offset(0, 4)),
-                      ],
-                    ),
-                  ),
-                  ShaderMask(
-                    shaderCallback: (bounds) => const LinearGradient(
-                      colors: [RoamColors.mint, RoamColors.gold, RoamColors.coral],
-                    ).createShader(bounds),
-                    child: Text(
-                      'Companion.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.breeSerif(
-                        color: Colors.white,
-                        fontSize: 34,
-                        height: 1.15,
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0, 0.4, 1],
+                        colors: [
+                          RoamColors.navy.withValues(alpha: 0.45),
+                          RoamColors.navy.withValues(alpha: 0.2),
+                          RoamColors.navy.withValues(alpha: 0.72),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Roam Together matches solo travelers with verified, '
-                    'like-minded companions — so you never have to explore alone.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70, fontSize: 14.5, height: 1.5),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 84, 24, 230),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Find Your Travel',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.breeSerif(
+                          color: Colors.white,
+                          fontSize: 34,
+                          height: 1.15,
+                          shadows: const [
+                            Shadow(color: Colors.black38, blurRadius: 24, offset: Offset(0, 4)),
+                          ],
+                        ),
+                      ),
+                      ShaderMask(
+                        shaderCallback: (bounds) => const LinearGradient(
+                          colors: [RoamColors.mint, RoamColors.gold, RoamColors.coral],
+                        ).createShader(bounds),
+                        child: Text(
+                          'Companion.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.breeSerif(
+                            color: Colors.white,
+                            fontSize: 34,
+                            height: 1.15,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Roam Together matches solo travelers with verified, '
+                        'like-minded companions — so you never have to explore alone.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70, fontSize: 14.5, height: 1.5),
+                      ),
+                      const SizedBox(height: 28),
+                      const _TrustBar(),
+                    ],
                   ),
-                  const SizedBox(height: 28),
-                  const _TrustBar(),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: _cardOverlap),
+        ],
       ),
       Positioned(
         left: 20,
         right: 20,
-        bottom: -70,
-        child: _SearchCard(onFindTrips: onFindTrips),
+        bottom: 0,
+        child: _SearchCard(api: api),
       ),
     ],
   );
@@ -232,31 +225,25 @@ class _TrustItem extends StatelessWidget {
 }
 
 class _SearchCard extends StatefulWidget {
-  const _SearchCard({required this.onFindTrips});
+  const _SearchCard({required this.api});
 
-  final VoidCallback onFindTrips;
+  final RoamApi api;
 
   @override
   State<_SearchCard> createState() => _SearchCardState();
 }
 
 class _SearchCardState extends State<_SearchCard> {
-  final _whereController = TextEditingController();
+  final _countryController = TextEditingController();
+  final _cityController = TextEditingController();
   DateTimeRange? _dates;
   String? _style;
-
-  static const _styleOptions = {
-    'solo': 'Solo, independent',
-    'chill': 'Chill & beachy',
-    'adventure': 'Adventure & outdoors',
-    'luxury': 'Luxury & bougie',
-    'budget': 'Budget & backpacking',
-    'food': 'Food & culture focused',
-  };
+  var _submitting = false;
 
   @override
   void dispose() {
-    _whereController.dispose();
+    _countryController.dispose();
+    _cityController.dispose();
     super.dispose();
   }
 
@@ -277,6 +264,65 @@ class _SearchCardState extends State<_SearchCard> {
     return '${fmt(_dates!.start)} – ${fmt(_dates!.end)}';
   }
 
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _submit() async {
+    final country = _countryController.text.trim();
+    final city = _cityController.text.trim();
+    final style = _style;
+    if (country.isEmpty || city.isEmpty) {
+      _showMessage('Enter a country and city.');
+      return;
+    }
+    if (_dates == null) {
+      _showMessage('Choose your travel dates.');
+      return;
+    }
+    if (style == null) {
+      _showMessage('Select a travel style.');
+      return;
+    }
+
+    if (!widget.api.isSignedIn) {
+      final signedIn = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => AuthScreen(api: widget.api)),
+      );
+      if (signedIn != true || !mounted) return;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      String fmt(DateTime d) =>
+          '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      final trip = await widget.api.createTrip({
+        'title': '$city, $country',
+        'country': country,
+        'city': city,
+        'start': fmt(_dates!.start),
+        'end': fmt(_dates!.end),
+        'style': style,
+      });
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => MatchesScreen(
+            api: widget.api,
+            tripId: trip['id'] as String,
+            city: city,
+            country: country,
+          ),
+        ),
+      );
+    } on RoamApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      _showMessage(error.message);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(18),
@@ -293,15 +339,37 @@ class _SearchCardState extends State<_SearchCard> {
         _SearchField(
           icon: Icons.location_on_outlined,
           label: 'WHERE TO?',
-          child: TextField(
-            controller: _whereController,
-            style: const TextStyle(fontSize: 14),
-            decoration: const InputDecoration(
-              isDense: true,
-              border: InputBorder.none,
-              hintText: 'Country / City',
-              hintStyle: TextStyle(color: Color(0xffb0bec9)),
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _countryController,
+                  style: const TextStyle(fontSize: 14),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    hintText: 'Country',
+                    hintStyle: TextStyle(color: Color(0xffb0bec9)),
+                  ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 6),
+                child: Text('/', style: TextStyle(color: Color(0xffb0bec9))),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: _cityController,
+                  style: const TextStyle(fontSize: 14),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    hintText: 'City',
+                    hintStyle: TextStyle(color: Color(0xffb0bec9)),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         const Divider(height: 22),
@@ -330,7 +398,7 @@ class _SearchCardState extends State<_SearchCard> {
             underline: const SizedBox.shrink(),
             hint: const Text('Select style', style: TextStyle(color: Color(0xffb0bec9), fontSize: 13.5)),
             items: [
-              for (final entry in _styleOptions.entries)
+              for (final entry in styleLabels.entries)
                 DropdownMenuItem(value: entry.key, child: Text(entry.value, style: const TextStyle(fontSize: 13.5))),
             ],
             onChanged: (value) => setState(() => _style = value),
@@ -348,20 +416,26 @@ class _SearchCardState extends State<_SearchCard> {
               color: Colors.transparent,
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
-                onTap: widget.onFindTrips,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.search, color: Colors.white, size: 18),
-                      SizedBox(width: 8),
-                      Text(
-                        'Find Trips',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14.5),
-                      ),
-                    ],
-                  ),
+                onTap: _submitting ? null : _submit,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.search, color: Colors.white, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'Find Trips',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14.5),
+                            ),
+                          ],
+                        ),
                 ),
               ),
             ),
