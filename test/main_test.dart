@@ -36,6 +36,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Try again'), findsOneWidget);
     expect(find.byType(Chip), findsNothing);
+    await tester.ensureVisible(find.text('Try again'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Try again'));
     await tester.pumpAndSettle();
     expect(find.text('Adventure & outdoors'), findsOneWidget);
