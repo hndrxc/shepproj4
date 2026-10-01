@@ -66,20 +66,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      backgroundColor: RoamColors.navy,
-      title: Text(
-        'Roam Together',
-        style: GoogleFonts.breeSerif(color: Colors.white, fontSize: 20),
-      ),
-    ),
+    backgroundColor: RoamColors.offwhite,
+    appBar: _RoamAppBar(onJoin: () => _comingSoon('Sign up')),
     // A plain Column (not a lazy ListView/CustomScrollView) so every section
     // is always built, not just whatever is within the current viewport.
     body: SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Hero(onGetStarted: () => _comingSoon('Sign up')),
+          _Hero(onFindTrips: () => _comingSoon('Trip search')),
+          const SizedBox(height: 56),
           const _FeatureGrid(),
           _TravelStylesSection(
             future: _styles,
@@ -99,105 +95,366 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({required this.onGetStarted});
+  const _Hero({required this.onFindTrips});
 
-  final VoidCallback onGetStarted;
+  final VoidCallback onFindTrips;
+
+  static const _heroImage = AssetImage('assets/images/hero-nightlife.jpg');
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.fromLTRB(24, 48, 24, 40),
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [RoamColors.navy, RoamColors.navyTint],
-      ),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'FIND YOUR TRAVEL COMPANION',
-          style: TextStyle(
-            color: RoamColors.mint,
-            fontWeight: FontWeight.w700,
-            fontSize: 13,
-            letterSpacing: 1.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Roam further,\ntogether.',
-          style: GoogleFonts.breeSerif(
-            color: Colors.white,
-            fontSize: 36,
-            height: 1.15,
-          ),
-        ),
-        const SizedBox(height: 14),
-        const Text(
-          'Match with verified travelers who share your style, '
-          'your dates, and your sense of adventure.',
-          style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.5),
-        ),
-        const SizedBox(height: 24),
-        Row(
+  Widget build(BuildContext context) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      ClipRect(
+        child: Stack(
           children: [
-            Expanded(
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: RoamColors.mint,
-                  foregroundColor: RoamColors.navy,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            Positioned.fill(
+              child: Image(image: _heroImage, fit: BoxFit.cover),
+            ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0, 0.4, 1],
+                    colors: [
+                      RoamColors.navy.withValues(alpha: 0.45),
+                      RoamColors.navy.withValues(alpha: 0.2),
+                      RoamColors.navy.withValues(alpha: 0.72),
+                    ],
                   ),
                 ),
-                onPressed: onGetStarted,
-                child: const Text(
-                  'Get Started',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 84, 24, 230),
+              child: Column(
+                children: [
+                  Text(
+                    'Find Your Travel',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.breeSerif(
+                      color: Colors.white,
+                      fontSize: 34,
+                      height: 1.15,
+                      shadows: const [
+                        Shadow(color: Colors.black38, blurRadius: 24, offset: Offset(0, 4)),
+                      ],
+                    ),
+                  ),
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [RoamColors.mint, RoamColors.gold, RoamColors.coral],
+                    ).createShader(bounds),
+                    child: Text(
+                      'Companion.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.breeSerif(
+                        color: Colors.white,
+                        fontSize: 34,
+                        height: 1.15,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Roam Together matches solo travelers with verified, '
+                    'like-minded companions — so you never have to explore alone.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 14.5, height: 1.5),
+                  ),
+                  const SizedBox(height: 28),
+                  const _TrustBar(),
+                ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 20),
-        const _TrustStrip(),
-      ],
-    ),
-  );
-}
-
-class _TrustStrip extends StatelessWidget {
-  const _TrustStrip();
-
-  @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 18,
-    runSpacing: 10,
-    children: const [
-      _TrustBadge(icon: Icons.verified_user, label: 'Verified profiles'),
-      _TrustBadge(icon: Icons.lock_outline, label: 'Private messaging'),
-      _TrustBadge(icon: Icons.public, label: 'Global community'),
+      ),
+      Positioned(
+        left: 20,
+        right: 20,
+        bottom: -70,
+        child: _SearchCard(onFindTrips: onFindTrips),
+      ),
     ],
   );
 }
 
-class _TrustBadge extends StatelessWidget {
-  const _TrustBadge({required this.icon, required this.label});
+class _TrustBar extends StatelessWidget {
+  const _TrustBar();
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+    alignment: WrapAlignment.center,
+    spacing: 22,
+    runSpacing: 10,
+    children: const [
+      _TrustItem(icon: Icons.verified_user, bold: 'ID-Verified', rest: 'travelers only'),
+      _TrustItem(icon: Icons.star, bold: '4.8/5', rest: 'average trip rating'),
+      _TrustItem(icon: Icons.public, bold: '120+', rest: 'countries', prefix: 'Travelers in '),
+    ],
+  );
+}
+
+class _TrustItem extends StatelessWidget {
+  const _TrustItem({
+    required this.icon,
+    required this.bold,
+    required this.rest,
+    this.prefix = '',
+  });
 
   final IconData icon;
-  final String label;
+  final String bold;
+  final String rest;
+  final String prefix;
 
   @override
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 16, color: RoamColors.mint),
-      const SizedBox(width: 6),
-      Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+      Icon(icon, size: 15, color: RoamColors.gold),
+      const SizedBox(width: 7),
+      Text.rich(
+        TextSpan(
+          style: const TextStyle(color: Colors.white70, fontSize: 12.5, fontWeight: FontWeight.w500),
+          children: [
+            if (prefix.isNotEmpty) TextSpan(text: prefix),
+            TextSpan(text: bold, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            TextSpan(text: ' $rest'),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+class _SearchCard extends StatefulWidget {
+  const _SearchCard({required this.onFindTrips});
+
+  final VoidCallback onFindTrips;
+
+  @override
+  State<_SearchCard> createState() => _SearchCardState();
+}
+
+class _SearchCardState extends State<_SearchCard> {
+  final _whereController = TextEditingController();
+  DateTimeRange? _dates;
+  String? _style;
+
+  static const _styleOptions = {
+    'solo': 'Solo, independent',
+    'chill': 'Chill & beachy',
+    'adventure': 'Adventure & outdoors',
+    'luxury': 'Luxury & bougie',
+    'budget': 'Budget & backpacking',
+    'food': 'Food & culture focused',
+  };
+
+  @override
+  void dispose() {
+    _whereController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDates() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 730)),
+    );
+    if (picked != null) setState(() => _dates = picked);
+  }
+
+  String get _dateLabel {
+    if (_dates == null) return 'mm/dd/yyyy – mm/dd/yyyy';
+    String fmt(DateTime d) =>
+        '${d.month.toString().padLeft(2, '0')}/${d.day.toString().padLeft(2, '0')}/${d.year}';
+    return '${fmt(_dates!.start)} – ${fmt(_dates!.end)}';
+  }
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 32, offset: const Offset(0, 16)),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SearchField(
+          icon: Icons.location_on_outlined,
+          label: 'WHERE TO?',
+          child: TextField(
+            controller: _whereController,
+            style: const TextStyle(fontSize: 14),
+            decoration: const InputDecoration(
+              isDense: true,
+              border: InputBorder.none,
+              hintText: 'Country / City',
+              hintStyle: TextStyle(color: Color(0xffb0bec9)),
+            ),
+          ),
+        ),
+        const Divider(height: 22),
+        _SearchField(
+          icon: Icons.calendar_today_outlined,
+          label: 'DATES',
+          child: InkWell(
+            onTap: _pickDates,
+            child: Text(
+              _dateLabel,
+              style: TextStyle(
+                fontSize: 13.5,
+                color: _dates == null ? const Color(0xffb0bec9) : RoamColors.text,
+              ),
+            ),
+          ),
+        ),
+        const Divider(height: 22),
+        _SearchField(
+          icon: Icons.tune,
+          label: 'TRAVEL STYLE',
+          child: DropdownButton<String>(
+            value: _style,
+            isExpanded: true,
+            isDense: true,
+            underline: const SizedBox.shrink(),
+            hint: const Text('Select style', style: TextStyle(color: Color(0xffb0bec9), fontSize: 13.5)),
+            items: [
+              for (final entry in _styleOptions.entries)
+                DropdownMenuItem(value: entry.key, child: Text(entry.value, style: const TextStyle(fontSize: 13.5))),
+            ],
+            onChanged: (value) => setState(() => _style = value),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [RoamColors.mint, RoamColors.coral]),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: widget.onFindTrips,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 15),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.search, color: Colors.white, size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        'Find Trips',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _SearchField extends StatelessWidget {
+  const _SearchField({required this.icon, required this.label, required this.child});
+
+  final IconData icon;
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          Icon(icon, size: 13, color: RoamColors.mint),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
+              color: Color(0xff7a8fa6),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 6),
+      child,
+    ],
+  );
+}
+
+class _RoamAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const _RoamAppBar({required this.onJoin});
+
+  final VoidCallback onJoin;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(68);
+
+  @override
+  Widget build(BuildContext context) => AppBar(
+    backgroundColor: RoamColors.navyTint,
+    elevation: 0,
+    automaticallyImplyLeading: false,
+    titleSpacing: 20,
+    title: Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [RoamColors.mint, RoamColors.gold],
+        ),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Icon(Icons.explore, color: RoamColors.navy, size: 20),
+    ),
+    actions: [
+      Padding(
+        padding: const EdgeInsets.only(right: 10),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [RoamColors.mint, RoamColors.coral]),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(30),
+              onTap: onJoin,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Text(
+                  'Join Now',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     ],
   );
 }
