@@ -46,3 +46,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+# Roam Together local backend state
+backend/data/
+__pycache__/
+*.pyc
+
+supabase/.temp/
