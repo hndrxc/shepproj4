@@ -43,6 +43,7 @@ class _MainAppState extends State<MainApp> {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
     title: 'Roam Together',
     theme: buildRoamTheme(),
     home: HomeScreen(api: _api),
