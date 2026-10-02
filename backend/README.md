@@ -5,8 +5,10 @@
 Carter's server component for the Flutter project. The product reference is
 `web/home.html`: traveler profiles, destination/date/style discovery, connections,
 and chat. This is a runnable **local/classroom MVP**, using Python 3.12+ and SQLite
-with no pip packages or hosted accounts required. The Flutter UI remains Darrion's
-separate task; `lib/services/roam_api.dart` supplies its API integration layer.
+with no pip packages or hosted accounts required. The Flutter app now includes
+home, sign-up/login, and search-to-matches screens with connection requests;
+`lib/services/roam_api.dart` supplies the local API integration layer. See the
+[current app status](../README.md#current-status) for remaining frontend work.
 
 ## Run from the repository root
 
@@ -39,8 +41,9 @@ flutter run -d chrome --web-hostname localhost --web-port 5173 \
   --dart-define=USE_LOCAL_BACKEND=true --dart-define=API_BASE_URL=http://127.0.0.1:8080/api/
 ```
 
-The starter screen now loads travel styles from the HTTP API, with loading and retry states. Darrion can use one shared
-`RoamApi` instance in the new screens:
+The home screen loads travel styles from the selected backend, with loading and
+retry states. The app shares one API instance across home, auth, and matches
+screens. Additional screens can use the same `RoamApi` contract:
 
 ```dart
 import 'package:shepproj4/services/roam_api.dart';
@@ -162,8 +165,9 @@ The marketing page also advertises payments, premium benefits, government-ID
 verification, location maps, group bookings, insurance/referrals, check-ins and a
 24/7 safety line. Those require separate product decisions/providers and are
 **not implemented or simulated as real services**. No payment or ID data is
-collected. This backend does not turn the static HTML into a working app, and the
-Flutter frontend remains a separate team deliverable.
+collected. The static HTML remains a design reference; the Flutter app implements
+the home, auth, trip creation, matches, and connection-request flow. Profile,
+saved-trip management, connection-response, and chat screens remain frontend work.
 
 This standard-library HTTP server is for local/classroom use. Before public use,
 add a production server/TLS proxy, authentication rate limiting, account recovery,

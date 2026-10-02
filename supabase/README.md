@@ -36,8 +36,12 @@ Supabase and is not the deployed server.
 
 Use one `SupabaseRoamApi()` instance for the application and call `close()` when
 disposing it. It implements the existing `RoamApi` method contract for profiles,
-trips, matching, connections, messages, blocking and reporting. Default UI only
-shows the remote catalog; the remaining screens still need frontend implementation.
+trips, matching, connections, messages, blocking and reporting. The Flutter UI
+now includes the mobile home screen, sign-up/login with email-confirmation
+handling, trip creation from the search form, paginated matches, and connection
+requests. Profile editing, saved-trip management, connection responses, chat,
+block/report controls, and logout UI remain to be built; see the
+[current app status](../README.md#current-status).
 
 ```dart
 final api = SupabaseRoamApi();
@@ -141,5 +145,6 @@ dart run tool/verify_cloud.dart
 ```
 
 Cloud authentication with a real confirmed user and the complete frontend journey
-still needs testing when the frontend and email configuration are ready. No real
-users, demo passwords, service-role keys, or private records were added to Git.
+still need testing with confirmed, verified accounts and the deployed email
+configuration. No real users, demo passwords, service-role keys, or private
+records were added to Git.
